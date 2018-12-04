@@ -1,4 +1,4 @@
 FROM seafileltd/seafile
 MAINTAINER Stefano Marinelli <stefano@dragas.it>
 
-COPY seafile.nginx.conf /etc/nginx/sites-enabled/
+COPY seafile.nginx.conf.template /templates/
