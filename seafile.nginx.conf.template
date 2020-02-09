@@ -1,5 +1,8 @@
 # -*- mode: nginx -*-
 # Auto generated at {{ current_timestr }}
+# This file contains the nginx configuration for the local seafile server
+
+# https check
 {% if https -%}
 server {
     listen 80;
@@ -12,6 +15,8 @@ server {
 {% if https -%}
     listen 443;
     ssl on;
+
+    # provided certificates in /shared/ssl
     ssl_certificate      /shared/ssl/{{ domain }}.crt;
     ssl_certificate_key  /shared/ssl/{{ domain }}.key;
 
@@ -27,11 +32,15 @@ server {
 {% endif -%}
 
     server_name {{ domain }};
-
     client_max_body_size 10m;
 
+    # normal location for seafile
     location / {
         proxy_pass http://127.0.0.1:8000/;
+
+        # allows file up-/downloads up to 10 Gigabytes
+        client_max_body_size 10g;
+        proxy_request_buffering off;
         proxy_read_timeout 310s;
         proxy_set_header Host $host;
         proxy_set_header Forwarded "for=$remote_addr;proto=$scheme";
@@ -41,15 +50,22 @@ server {
         proxy_http_version 1.1;
     }
 
+    # seafhttp for clients
     location /seafhttp {
         rewrite ^/seafhttp(.*)$ $1 break;
         proxy_pass http://127.0.0.1:8082;
+        
+        # disable client_max_body_size for all clients
         client_max_body_size 0;
         proxy_connect_timeout  36000s;
         proxy_read_timeout  36000s;
+        proxy_send_timeout  36000s;
+		send_timeout  36000s;
     }
 
+    # seafdav for webdav
     location /seafdav {
+        # disable client_max_body_size for webdav clients
         client_max_body_size 0;
         fastcgi_pass    127.0.0.1:8080;
         fastcgi_param   SCRIPT_FILENAME     $document_root$fastcgi_script_name;
